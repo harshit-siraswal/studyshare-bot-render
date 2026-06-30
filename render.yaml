@@ -83,4 +83,3 @@ databases:
   - name: studyshare-bot-db
     databaseName: studyshare_wa
     plan: starter
-    user: postgres
