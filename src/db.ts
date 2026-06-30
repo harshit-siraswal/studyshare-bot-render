@@ -8,7 +8,16 @@ import {
   OpenClawDocumentEvent,
 } from "./types.js";
 
-const pool = new Pool({ connectionString: config.DATABASE_URL });
+const pool = new Pool({
+  connectionString: config.DATABASE_URL,
+  // Disable prepared statements for Supabase transaction pooler compatibility
+  // See: https://supabase.com/docs/guides/database/connecting-to-postgres
+  ...(config.DATABASE_URL?.includes(":6543") ? { prepareThreshold: 0 } : {}),
+  // Connection timeout to fail fast on startup (Render free plan is 512MB)
+  connectionTimeoutMillis: 10000,
+  idleTimeoutMillis: 30000,
+  max: 10,
+});
 
 export function getDb() {
   return pool;
