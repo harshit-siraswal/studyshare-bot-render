@@ -1,0 +1,86 @@
+services:
+  - type: web
+    name: studyshare-bot-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: standard
+    branch: main
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 8080
+      - key: DATABASE_URL
+        fromDatabase:
+          name: studyshare-bot-db
+          property: connectionString
+      - key: STUDYSHARE_POST_MODE
+        value: browser
+      - key: STUDYSHARE_ADMIN_APP_BASE
+        value: https://admin-studyspace-official.vercel.app
+      - key: STUDYSHARE_BROWSER_HEADLESS
+        value: "true"
+      - key: STUDYSHARE_BROWSER_EXECUTABLE_PATH
+        value: /usr/bin/chromium
+      - key: STUDYSHARE_BROWSER_TIMEOUT_MS
+        value: "90000"
+      - key: AUTO_POST_CONFIDENCE_THRESHOLD
+        value: "0.78"
+      - key: ENABLE_LLM_CLASSIFIER
+        value: "true"
+      - key: ENABLE_CHAT_AGENT
+        value: "true"
+      - key: ENABLE_GEMINI_VISION_OCR
+        value: "true"
+      - key: ENABLE_GOOGLE_VISION_OCR
+        value: "true"
+      - key: GEMINI_MODEL
+        value: gemini-1.5-flash
+      - key: CHAT_AGENT_MODEL
+        value: gemini-1.5-flash
+      - key: GEMINI_VISION_OCR_MAX_PAGES
+        value: "3"
+      - key: GOOGLE_VISION_OCR_MAX_PAGES
+        value: "3"
+      - key: INGEST_BODY_LIMIT_MB
+        value: "30"
+      - key: PYTHON_BIN
+        value: python3
+      - key: STUDYSHARE_UPLOADS_PRESIGN_PATH
+        value: /api/admin/uploads/presign
+      - key: STUDYSHARE_RESOURCES_PATH
+        value: /api/admin/resources
+      - key: STUDYSHARE_NOTICES_PATH
+        value: /api/admin/notices
+      - key: STUDYSHARE_SYLLABUS_PATH
+        value: /api/admin/syllabus
+      - key: STUDYSHARE_LEGACY_ADMIN_PATH
+        value: /api/admin
+      # Secrets — set these in Render Dashboard after first deploy
+      - key: STUDYSHARE_API_BASE
+        sync: false
+      - key: STUDYSHARE_ADMIN_BEARER
+        sync: false
+      - key: STUDYSHARE_ADMIN_DEFAULT_COLLEGE_ID
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GOOGLE_VISION_API_KEY
+        sync: false
+      - key: GOOGLE_CLOUD_VISION_API_KEY
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: OPS_ALERT_WEBHOOK_URL
+        sync: false
+      - key: MOLTBOT_CHAT_WEBHOOK_URL
+        sync: false
+      - key: MOLTBOT_REVIEW_NOTIFY_WEBHOOK_URL
+        sync: false
+
+databases:
+  - name: studyshare-bot-db
+    databaseName: studyshare_wa
+    plan: starter
+    user: postgres

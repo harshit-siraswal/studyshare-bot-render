@@ -1,0 +1,23 @@
+Classify this educational document.
+
+Inputs:
+- group_title: {{group_title}}
+- filename: {{filename}}
+- caption: {{caption}}
+- subject_catalog: {{subject_catalog}}
+- first_page_heading: {{first_page_heading}}
+- first_page_text_sample: {{first_page_text_sample}}
+- full_text_sample: {{full_text_sample}}
+
+Output JSON schema:
+{
+  "category": "syllabus|resource|notice",
+  "confidence": 0.0,
+  "title": "string",
+  "summary": "string",
+  "department": "string|null",
+  "branch": "string|null",
+  "semester": "string|null",
+  "subject": "string|null",
+  "priority": "low|normal|high"
+}

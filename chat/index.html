@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="studyshareclaw-api-base" content="" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <title>StudyShareClaw</title>
+    <link rel="icon" type="image/svg+xml" href="/chat/favicon.svg" />
+    <link rel="stylesheet" href="/chat/styles.css" />
+  </head>
+  <body>
+    <main class="workspace-shell" aria-label="StudyShareClaw interface">
+      <aside class="sidebar-shell" aria-label="StudyShareClaw navigation">
+        <div class="sidebar-brand">
+          <div class="brand-mark" aria-hidden="true">SC</div>
+          <div class="brand-copy">
+            <h1>StudyShareClaw</h1>
+            <p>Operate ingestion, review, retract, and monitor from one surface.</p>
+          </div>
+        </div>
+
+        <div class="sidebar-status">
+          <span id="connection-pill" class="pill pill-warn">Connecting...</span>
+          <span id="uptime-label" class="mini">Uptime: --</span>
+          <span id="last-sync-label" class="mini">Last sync: --</span>
+        </div>
+
+        <nav class="sidebar-nav">
+          <button class="sidebar-link is-active" type="button" data-target="overview-section">
+            Overview
+          </button>
+          <button class="sidebar-link" type="button" data-target="ops-section">Quick Ops</button>
+          <button class="sidebar-link" type="button" data-target="chat-section">Chat</button>
+          <button class="sidebar-link" type="button" data-target="activity-section">
+            Activity
+          </button>
+          <button class="sidebar-link" type="button" data-target="review-section">Reviews</button>
+        </nav>
+
+        <div class="sidebar-note">
+          <p class="sidebar-note-label">Operator Hint</p>
+          <p class="sidebar-note-body">
+            Use natural language in chat, then jump straight to live activity or pending review when
+            you need to verify what Claw actually did.
+          </p>
+        </div>
+      </aside>
+
+      <div class="stage-shell">
+        <header class="stage-header">
+          <div class="stage-copy">
+            <p class="stage-kicker">StudyShare Automation Console</p>
+            <h2>Less clutter, faster actions</h2>
+            <p>
+              Overview stays separate from execution. Chat, quick operations, live events, and
+              manual review each have their own zone.
+            </p>
+          </div>
+          <div class="stage-actions">
+            <button data-command="/help">/help</button>
+            <button data-command="/status">/status</button>
+            <button data-command="/pending">/pending</button>
+            <button data-command="/duplicates recent 20">/duplicates recent 20</button>
+          </div>
+        </header>
+
+        <section id="overview-section" class="workspace-panel overview-panel" aria-label="Overview">
+          <div class="panel-header">
+            <h2>Overview</h2>
+            <span class="muted">Pipeline health, source activity, and runtime pulse</span>
+          </div>
+
+          <div class="overview-grid">
+            <section class="summary-panel">
+              <div class="dashboard-grid" aria-label="Pipeline stats">
+                <article class="metric-card">
+                  <h3>Received (24h)</h3>
+                  <p id="metric-received" class="metric-value">--</p>
+                </article>
+                <article class="metric-card">
+                  <h3>Posted (24h)</h3>
+                  <p id="metric-posted" class="metric-value success">--</p>
+                </article>
+                <article class="metric-card">
+                  <h3>Pending Review</h3>
+                  <p id="metric-pending" class="metric-value warn">--</p>
+                </article>
+                <article class="metric-card">
+                  <h3>Failed (24h)</h3>
+                  <p id="metric-failed" class="metric-value danger">--</p>
+                </article>
+              </div>
+
+              <div class="ops-strip" aria-label="Current pipeline work">
+                <article class="ops-card">
+                  <h3>Active Now</h3>
+                  <p id="ops-active" class="ops-value">--</p>
+                </article>
+                <article class="ops-card">
+                  <h3>Awaiting Review</h3>
+                  <p id="ops-awaiting" class="ops-value warn">--</p>
+                </article>
+                <article class="ops-card">
+                  <h3>Posted In Feed</h3>
+                  <p id="ops-posted" class="ops-value success">--</p>
+                </article>
+                <article class="ops-card">
+                  <h3>Failures In Feed</h3>
+                  <p id="ops-failed" class="ops-value danger">--</p>
+                </article>
+              </div>
+            </section>
+
+            <section class="overview-stack">
+              <article class="panel inset-panel mission-sources">
+                <div class="panel-header panel-header-tight">
+                  <h2>Source Snapshot</h2>
+                  <span class="muted">24h by sender</span>
+                </div>
+                <div id="source-breakdown" class="source-breakdown"></div>
+              </article>
+
+              <article class="panel inset-panel runtime-card">
+                <div class="panel-header panel-header-tight">
+                  <h2>Runtime Stream</h2>
+                  <span class="muted">Most recent pipeline actions</span>
+                </div>
+                <div id="runtime-stream" class="runtime-stream"></div>
+              </article>
+            </section>
+          </div>
+        </section>
+
+        <section id="ops-section" class="workspace-panel" aria-label="Quick operations">
+          <div class="panel-header">
+            <h2>Quick Ops</h2>
+            <span class="muted"
+              >Run targeted duplicate scans, retract recent posts, and control refresh
+              behavior</span
+            >
+          </div>
+
+          <div class="mission-tools" aria-label="Quick operations">
+            <article class="tool-card">
+              <h3>Duplicate Controls</h3>
+              <div class="tool-grid">
+                <label>
+                  <span>Mode</span>
+                  <select id="dup-mode">
+                    <option value="file">File</option>
+                    <option value="strict">Strict</option>
+                    <option value="loose">Loose</option>
+                    <option value="ocr">OCR</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Recent Count</span>
+                  <input id="dup-recent" type="number" min="1" max="500" value="20" />
+                </label>
+                <label>
+                  <span>Delete Max</span>
+                  <input id="dup-delete-count" type="number" min="1" max="200" value="10" />
+                </label>
+              </div>
+              <div class="tool-actions">
+                <button id="run-dup-scan" type="button">Scan Duplicates</button>
+                <button id="run-dup-delete" type="button" class="danger-btn">
+                  Delete Duplicates
+                </button>
+              </div>
+            </article>
+
+            <article class="tool-card">
+              <h3>Retract Controls</h3>
+              <div class="tool-grid">
+                <label>
+                  <span>Source</span>
+                  <select id="retract-source">
+                    <option value="all">All</option>
+                    <option value="drive">Drive</option>
+                    <option value="whatsapp">WhatsApp</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Last Count</span>
+                  <input id="retract-count" type="number" min="1" max="100" value="5" />
+                </label>
+              </div>
+              <div class="tool-actions">
+                <button id="run-retract-last" type="button" class="danger-btn">Retract Last</button>
+              </div>
+            </article>
+
+            <article class="tool-card">
+              <h3>Auto Refresh</h3>
+              <div class="tool-grid poll-grid">
+                <label class="toggle-row">
+                  <input id="auto-refresh-toggle" type="checkbox" checked />
+                  <span>Enable polling</span>
+                </label>
+                <label>
+                  <span>Interval</span>
+                  <select id="poll-interval-select">
+                    <option value="10000">10s</option>
+                    <option value="15000" selected>15s</option>
+                    <option value="30000">30s</option>
+                    <option value="60000">60s</option>
+                  </select>
+                </label>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section
+          id="chat-section"
+          class="workspace-panel panel chat-panel"
+          aria-label="StudyShareClaw chat"
+        >
+          <div class="panel-header">
+            <h2>Chat</h2>
+            <div class="quick-actions">
+              <button data-command="/health">/health</button>
+              <button data-command="/duplicates">/duplicates</button>
+              <button data-command="/duplicates ocr recent 20">/duplicates ocr recent 20</button>
+            </div>
+          </div>
+
+          <div class="panel-subheader">
+            <span class="muted"
+              >Use natural language or slash commands. Example: "scan OCR duplicates for last 30 and
+              delete 10"</span
+            >
+            <div class="sub-actions">
+              <button id="clear-history" class="ghost-btn" type="button">Clear Chat</button>
+            </div>
+          </div>
+
+          <section id="chat-window" class="chat-window" aria-live="polite"></section>
+
+          <form id="chat-form" class="chat-form">
+            <label class="sr-only" for="chat-input">Message</label>
+            <input
+              id="chat-input"
+              type="text"
+              placeholder="Tell StudyShareClaw what to do..."
+              autocomplete="off"
+            />
+            <button type="submit">Send</button>
+          </form>
+        </section>
+
+        <section
+          id="activity-section"
+          class="workspace-panel panel live-panel"
+          aria-label="Live pipeline activity"
+        >
+          <div class="panel-header">
+            <h2>Live Activity</h2>
+            <div class="quick-actions">
+              <button id="refresh-live" class="ghost-btn" type="button">Refresh</button>
+            </div>
+          </div>
+
+          <div class="panel-subheader live-filters">
+            <div class="filter-grid">
+              <select id="live-filter-status" aria-label="Filter by status">
+                <option value="all">All statuses</option>
+                <option value="posted">Posted</option>
+                <option value="queued_review">Queued review</option>
+                <option value="failed">Failed</option>
+                <option value="received">Received</option>
+                <option value="classification_pending">Classifying</option>
+                <option value="review_approved">Review approved</option>
+                <option value="review_rejected">Review rejected</option>
+              </select>
+              <select id="live-filter-source" aria-label="Filter by source">
+                <option value="all">All sources</option>
+                <option value="drive">Drive</option>
+                <option value="whatsapp">WhatsApp</option>
+                <option value="unknown">Unknown</option>
+              </select>
+              <select id="live-filter-category" aria-label="Filter by category">
+                <option value="all">All categories</option>
+                <option value="resource">Resource</option>
+                <option value="syllabus">Syllabus</option>
+                <option value="notice">Notice</option>
+              </select>
+              <input id="live-filter-text" type="text" placeholder="Search title/file/subject..." />
+            </div>
+            <div class="filter-side">
+              <span id="live-filter-count" class="muted">Showing --</span>
+              <button id="live-filter-clear" class="ghost-btn" type="button">Clear</button>
+            </div>
+          </div>
+
+          <div class="panel-subheader retract-bar">
+            <label>
+              <span class="muted">Direct retract by resource ID</span>
+              <input id="direct-retract-id" type="text" placeholder="resource id..." />
+            </label>
+            <button id="direct-retract-btn" type="button" class="ghost-btn">Retract</button>
+          </div>
+
+          <div class="live-layout">
+            <h3 class="live-heading">Recent Events</h3>
+            <div id="live-feed" class="live-feed"></div>
+          </div>
+        </section>
+
+        <section
+          id="review-section"
+          class="workspace-panel panel review-panel"
+          aria-label="Pending approvals"
+        >
+          <div class="panel-header">
+            <h2>Pending Reviews</h2>
+            <div class="quick-actions">
+              <button id="refresh-pending" class="ghost-btn" type="button">Refresh</button>
+            </div>
+          </div>
+
+          <div class="panel-subheader pending-toolbar">
+            <div class="pending-filter-grid">
+              <select id="pending-filter-category" aria-label="Pending category">
+                <option value="all">All categories</option>
+                <option value="resource">Resource</option>
+                <option value="syllabus">Syllabus</option>
+                <option value="notice">Notice</option>
+              </select>
+              <input
+                id="pending-filter-text"
+                type="text"
+                placeholder="Search pending by title/file/subject..."
+              />
+            </div>
+            <div class="filter-side">
+              <span id="pending-filter-count" class="muted">Pending --</span>
+              <button id="pending-filter-clear" class="ghost-btn" type="button">Clear</button>
+            </div>
+          </div>
+
+          <div id="pending-list" class="pending-list"></div>
+        </section>
+      </div>
+    </main>
+
+    <script src="/chat/app.js" type="module"></script>
+  </body>
+</html>
