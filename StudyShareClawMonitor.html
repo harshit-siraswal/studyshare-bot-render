@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyShareClaw | Real-time Monitor</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    :root {
+      --bg-darker: #060913;
+      --bg-dark: #0b1120;
+      --bg-card: rgba(17, 24, 43, 0.75);
+      --border: rgba(56, 189, 248, 0.15);
+      --border-focus: rgba(56, 189, 248, 0.5);
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      
+      /* Status colors */
+      --color-posted: #10b981;
+      --color-received: #38bdf8;
+      --color-pending: #f59e0b;
+      --color-failed: #ef4444;
+      --color-ignored: #64748b;
+      
+      /* Glassmorphism settings */
+      --glass-bg: rgba(15, 23, 42, 0.45);
+      --glass-blur: blur(12px);
+      --shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background-color: var(--bg-darker);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.08) 0px, transparent 50%);
+      color: var(--text-main);
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Scrollbar Styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.3);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(56, 189, 248, 0.2);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(56, 189, 248, 0.4);
+    }
+
+    header {
+      backdrop-filter: var(--glass-blur);
+      background-color: rgba(6, 9, 19, 0.8);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-badge {
+      background: linear-gradient(135deg, #0284c7, #0d9488);
+      color: white;
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 16px;
+      box-shadow: 0 0 20px rgba(14, 165, 233, 0.3);
+    }
+
+    .title-group h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(to right, #38bdf8, #34d399);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .title-group p {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .connection-controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .url-selector {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-main);
+      padding: 8px 12px;
+      font-size: 13px;
+      outline: none;
+      min-width: 250px;
+      transition: all 0.3s;
+    }
+
+    .url-selector:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.15);
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--color-failed);
+      box-shadow: 0 0 8px var(--color-failed);
+    }
+
+    .status-dot.connected {
+      background-color: var(--color-posted);
+      box-shadow: 0 0 8px var(--color-posted);
+    }
+
+    .status-dot.connecting {
+      background-color: var(--color-pending);
+      box-shadow: 0 0 8px var(--color-pending);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.4; }
+      50% { opacity: 1; }
+      100% { opacity: 0.4; }
+    }
+
+    .main-layout {
+      flex: 1;
+      max-width: 1600px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 24px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+
+    /* Stats Section */
+    .stats-container {
+      grid-column: span 4;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: var(--shadow);
+      transition: transform 0.3s, border-color 0.3s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(56, 189, 248, 0.3);
+    }
+
+    .stat-info h3 {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .stat-info p {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+
+    .stat-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+    }
+
+    .stat-icon.received { background: rgba(56, 189, 248, 0.1); color: var(--color-received); }
+    .stat-icon.posted { background: rgba(16, 185, 129, 0.1); color: var(--color-posted); }
+    .stat-icon.pending { background: rgba(245, 158, 11, 0.1); color: var(--color-pending); }
+    .stat-icon.failed { background: rgba(239, 68, 68, 0.1); color: var(--color-failed); }
+
+    /* Left Column: Logs / Terminal */
+    .terminal-container {
+      grid-column: span 3;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      height: 650px;
+      box-shadow: var(--shadow);
+    }
+
+    .terminal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .terminal-title {
+      font-weight: 600;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .terminal-title i {
+      color: var(--color-received);
+    }
+
+    .terminal-filters {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .filter-input {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 13px;
+      outline: none;
+      width: 180px;
+    }
+
+    .filter-select {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .terminal-body {
+      flex: 1;
+      padding: 12px 20px;
+      overflow-y: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      background: rgba(5, 7, 15, 0.95);
+      border-bottom-left-radius: 15px;
+      border-bottom-right-radius: 15px;
+    }
+
+    .log-line {
+      display: grid;
+      grid-template-columns: 80px 100px 80px 1fr;
+      gap: 12px;
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    .log-time {
+      color: var(--text-muted);
+    }
+
+    .log-badge {
+      display: inline-block;
+      text-align: center;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 1px 6px;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+    }
+
+    .log-badge.posted { background: rgba(16, 185, 129, 0.15); color: var(--color-posted); }
+    .log-badge.review_pending { background: rgba(245, 158, 11, 0.15); color: var(--color-pending); }
+    .log-badge.failed { background: rgba(239, 68, 68, 0.15); color: var(--color-failed); }
+    .log-badge.received { background: rgba(56, 189, 248, 0.15); color: var(--color-received); }
+    .log-badge.ignored { background: rgba(100, 116, 139, 0.15); color: var(--color-ignored); }
+
+    .log-category {
+      color: #cbd5e1;
+      font-weight: 500;
+    }
+
+    .log-message {
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* Right Column: Pending Reviews / Config */
+    .sidebar-layout {
+      grid-column: span 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .sidebar-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      max-height: 400px;
+    }
+
+    .panel-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .review-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .review-card {
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 12px;
+      position: relative;
+    }
+
+    .review-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .review-title {
+      font-weight: 600;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 150px;
+    }
+
+    .review-confidence {
+      color: var(--color-pending);
+      font-weight: 600;
+    }
+
+    .review-meta {
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .review-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      flex: 1;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: background-color 0.2s;
+    }
+
+    .btn-approve {
+      background-color: var(--color-posted);
+      color: var(--bg-darker);
+    }
+    .btn-approve:hover { background-color: #059669; }
+
+    .btn-reject {
+      background-color: var(--color-failed);
+      color: white;
+    }
+    .btn-reject:hover { background-color: #dc2626; }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 0;
+      color: var(--text-muted);
+      font-size: 13px;
+      gap: 10px;
+    }
+
+    .empty-state i {
+      font-size: 32px;
+      color: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Config panel */
+    .config-panel {
+      max-height: none;
+    }
+
+    .config-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 13px;
+    }
+
+    .config-key {
+      color: var(--text-muted);
+    }
+
+    .config-val {
+      font-weight: 600;
+    }
+
+    .config-val.enabled {
+      color: var(--color-posted);
+    }
+
+    /* Modal Styling */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      place-items: center;
+    }
+
+    .modal-content {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      width: 400px;
+      box-shadow: var(--shadow);
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .form-input {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+
+    .modal-btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+    }
+
+    .modal-btn-cancel {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-main);
+    }
+
+    .modal-btn-save {
+      background: var(--color-received);
+      color: var(--bg-darker);
+    }
+
+    /* Toast notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: 12px 24px;
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      z-index: 2000;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .toast-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+    }
+
+    .toast-icon {
+      color: var(--color-posted);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo-container">
+      <div class="logo-badge">SC</div>
+      <div class="title-group">
+        <h1>StudyShareClaw Monitor</h1>
+        <p>Live WhatsApp & Ingestion Pipeline Logs</p>
+      </div>
+    </div>
+    
+    <div class="connection-controls">
+      <!-- Fast backend switches -->
+      <select id="backend-selector" class="url-selector">
+        <option value="https://studyshare-bot-backend.onrender.com">Render (Production)</option>
+        <option value="http://localhost:8080">Local Bot (Docker / 8080)</option>
+        <option value="custom">-- Custom Endpoint --</option>
+      </select>
+
+      <button class="btn btn-approve" id="settings-trigger" style="flex:none; padding: 8px 12px; border-radius: 8px;">
+        <i class="fa-solid fa-cog"></i>
+      </button>
+
+      <div class="status-pill">
+        <div id="status-dot" class="status-dot"></div>
+        <span id="status-text">Disconnected</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-layout">
+    
+    <!-- Row 1: Pipeline Counters -->
+    <div class="stats-container">
+      <div class="stat-card">
+        <div class="stat-info">
+          <h3>Received (24h)</h3>
+          <p id="stat-received">0</p>
+        </div>
+        <div class="stat-icon received">
+          <i class="fa-solid fa-cloud-arrow-down"></i>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-info">
+          <h3>Posted (24h)</h3>
+          <p id="stat-posted" style="color: var(--color-posted)">0</p>
+        </div>
+        <div class="stat-icon posted">
+          <i class="fa-solid fa-check-double"></i>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-info">
+          <h3>Pending Review</h3>
+          <p id="stat-pending" style="color: var(--color-pending)">0</p>
+        </div>
+        <div class="stat-icon pending">
+          <i class="fa-solid fa-user-clock"></i>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-info">
+          <h3>Failed (24h)</h3>
+          <p id="stat-failed" style="color: var(--color-failed)">0</p>
+        </div>
+        <div class="stat-icon failed">
+          <i class="fa-solid fa-circle-exclamation"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 2 Column 1: Live Terminal Log Stream -->
+    <div class="terminal-container">
+      <div class="terminal-header">
+        <div class="terminal-title">
+          <i class="fa-solid fa-terminal"></i>
+          <span>Live Ingest Activity Feed</span>
+        </div>
+        
+        <div class="terminal-filters">
+          <input type="text" id="search-filter" class="filter-input" placeholder="Search logs...">
+          
+          <select id="status-filter" class="filter-select">
+            <option value="all">All Statuses</option>
+            <option value="posted">Posted</option>
+            <option value="review_pending">In Review</option>
+            <option value="failed">Failed</option>
+            <option value="ignored">Ignored</option>
+            <option value="received">Received</option>
+          </select>
+
+          <select id="category-filter" class="filter-select">
+            <option value="all">All Categories</option>
+            <option value="resource">Resource</option>
+            <option value="notice">Notice</option>
+            <option value="syllabus">Syllabus</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="terminal-body" id="log-stream-body">
+        <div class="empty-state">
+          <i class="fa-solid fa-spinner fa-spin" style="color: var(--color-received)"></i>
+          <p>Connecting and subscribing to live stream...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 2 Column 2: Side Panels -->
+    <div class="sidebar-layout">
+      
+      <!-- Manual review panel -->
+      <div class="sidebar-panel">
+        <div class="panel-title">
+          <span>Manual Review Queue</span>
+          <span id="review-count-badge" class="log-badge review_pending">0</span>
+        </div>
+        
+        <div class="review-list" id="pending-reviews-body">
+          <div class="empty-state">
+            <i class="fa-solid fa-shield-halved"></i>
+            <p>Queue clean. No pending reviews.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- System status panel -->
+      <div class="sidebar-panel config-panel">
+        <div class="panel-title">
+          <span>Bot Configuration</span>
+        </div>
+        
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div class="config-item">
+            <span class="config-key">LLM Classifier</span>
+            <span class="config-val" id="cfg-llm">--</span>
+          </div>
+          <div class="config-item">
+            <span class="config-key">Uptime</span>
+            <span class="config-val" id="cfg-uptime">--</span>
+          </div>
+          <div class="config-item">
+            <span class="config-key">Chat Webhook</span>
+            <span class="config-val" id="cfg-webhook">--</span>
+          </div>
+          <div class="config-item">
+            <span class="config-key">Refresh Cycle</span>
+            <span class="config-val">5 seconds</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Custom URL Dialog -->
+  <div class="modal" id="custom-url-modal">
+    <div class="modal-content">
+      <div class="modal-title">Configure Backend Endpoint</div>
+      <div class="form-group">
+        <label for="custom-url-input">StudyShareClaw Backend URL</label>
+        <input type="text" id="custom-url-input" class="form-input" placeholder="https://api.example.com">
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-cancel" id="modal-cancel">Cancel</button>
+        <button class="modal-btn modal-btn-save" id="modal-save">Connect</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notification -->
+  <div class="toast" id="toast">
+    <div class="toast-content">
+      <i class="fa-solid fa-circle-check toast-icon"></i>
+      <span id="toast-text">Success!</span>
+    </div>
+  </div>
+
+  <script>
+    // State management
+    const LOCAL_STORAGE_KEY = 'studyshareclaw-endpoint-config';
+    let currentEndpoint = 'https://studyshare-bot-backend.onrender.com';
+    let pollInterval = null;
+    let cachedActivities = [];
+
+    // DOM Elements
+    const backendSelector = document.getElementById('backend-selector');
+    const statusDot = document.getElementById('status-dot');
+    const statusText = document.getElementById('status-text');
+    const customUrlModal = document.getElementById('custom-url-modal');
+    const customUrlInput = document.getElementById('custom-url-input');
+    const modalCancel = document.getElementById('modal-cancel');
+    const modalSave = document.getElementById('modal-save');
+    const settingsTrigger = document.getElementById('settings-trigger');
+    const toast = document.getElementById('toast');
+    const toastText = document.getElementById('toast-text');
+
+    // Stats
+    const statReceived = document.getElementById('stat-received');
+    const statPosted = document.getElementById('stat-posted');
+    const statPending = document.getElementById('stat-pending');
+    const statFailed = document.getElementById('stat-failed');
+
+    // Terminal & List
+    const logStreamBody = document.getElementById('log-stream-body');
+    const pendingReviewsBody = document.getElementById('pending-reviews-body');
+    const reviewCountBadge = document.getElementById('review-count-badge');
+
+    // Filters
+    const searchFilter = document.getElementById('search-filter');
+    const statusFilter = document.getElementById('status-filter');
+    const categoryFilter = document.getElementById('category-filter');
+
+    // Config Panel
+    const cfgLlm = document.getElementById('cfg-llm');
+    const cfgUptime = document.getElementById('cfg-uptime');
+    const cfgWebhook = document.getElementById('cfg-webhook');
+
+    // Load saved settings
+    function loadSettings() {
+      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (saved) {
+        currentEndpoint = saved;
+        // Check if matching preset options
+        let matched = false;
+        for (let i = 0; i < backendSelector.options.length; i++) {
+          if (backendSelector.options[i].value === saved) {
+            backendSelector.selectedIndex = i;
+            matched = true;
+            break;
+          }
+        }
+        if (!matched) {
+          // Add custom option to dropdown
+          const customOpt = document.createElement('option');
+          customOpt.value = saved;
+          customOpt.textContent = `Custom (${new URL(saved).hostname})`;
+          backendSelector.insertBefore(customOpt, backendSelector.lastElementChild);
+          backendSelector.value = saved;
+        }
+      }
+    }
+
+    // Save settings
+    function saveSettings(url) {
+      currentEndpoint = url;
+      localStorage.setItem(LOCAL_STORAGE_KEY, url);
+      showToast(`Switched to: ${url}`);
+      resetPolling();
+    }
+
+    // Show toast notifications
+    function showToast(message) {
+      toastText.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    // Format Uptime
+    function formatUptime(seconds) {
+      if (!seconds) return '--';
+      const days = Math.floor(seconds / (3600*24));
+      const hrs = Math.floor((seconds % (3600*24)) / 3600);
+      const mins = Math.floor((seconds % 3600) / 60);
+      return `${days > 0 ? days + 'd ' : ''}${hrs}h ${mins}m`;
+    }
+
+    // Fetch dashboard data
+    async function updateDashboard() {
+      try {
+        setConnectionStatus('connecting');
+        const response = await fetch(`${currentEndpoint}/v1/dashboard`);
+        if (!response.ok) throw new Error('API request failed');
+        
+        const data = await response.json();
+        setConnectionStatus('ok', data.uptimeSeconds);
+        
+        // Render stats
+        statReceived.textContent = data.stats?.received24h ?? 0;
+        statPosted.textContent = data.stats?.posted24h ?? 0;
+        statPending.textContent = data.stats?.pendingReview ?? 0;
+        statFailed.textContent = data.stats?.failed24h ?? 0;
+
+        // Render configuration details
+        cfgLlm.textContent = data.llmEnabled ? 'Enabled' : 'Disabled';
+        cfgLlm.className = data.llmEnabled ? 'config-val enabled' : 'config-val';
+        cfgUptime.textContent = formatUptime(data.uptimeSeconds);
+        cfgWebhook.textContent = data.chatWebhookConfigured ? 'Active' : 'Missing';
+        cfgWebhook.className = data.chatWebhookConfigured ? 'config-val enabled' : 'config-val';
+
+        // Render terminal activities
+        cachedActivities = data.live || [];
+        filterAndRenderLogs();
+
+        // Render manual reviews
+        renderReviews(data.pending || []);
+
+      } catch (error) {
+        console.error(error);
+        setConnectionStatus('error');
+      }
+    }
+
+    // Filter and Render Logs
+    function filterAndRenderLogs() {
+      const q = searchFilter.value.toLowerCase();
+      const statusVal = statusFilter.value;
+      const catVal = categoryFilter.value;
+
+      const filtered = cachedActivities.filter(item => {
+        const matchesSearch = 
+          (item.title?.toLowerCase().includes(q)) || 
+          (item.file_name?.toLowerCase().includes(q)) || 
+          (item.sender?.toLowerCase().includes(q)) ||
+          (item.summary?.toLowerCase().includes(q));
+        
+        const matchesStatus = statusVal === 'all' || item.status === statusVal;
+        const matchesCat = catVal === 'all' || item.category === catVal;
+
+        return matchesSearch && matchesStatus && matchesCat;
+      });
+
+      if (filtered.length === 0) {
+        logStreamBody.innerHTML = `
+          <div class="empty-state">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <p>No matching activities found.</p>
+          </div>`;
+        return;
+      }
+
+      logStreamBody.innerHTML = filtered.map(item => {
+        const time = new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const badgeClass = `log-badge ${item.status}`;
+        const sourceName = item.file_name || item.title || 'Inbound Packet';
+        const sender = item.sender ? `[${item.sender}]` : '';
+        const details = item.summary ? ` — ${item.summary}` : '';
+
+        return `
+          <div class="log-line">
+            <span class="log-time">${time}</span>
+            <span><span class="${badgeClass}">${item.status.replace('_', ' ')}</span></span>
+            <span class="log-category">${item.category || 'bot'}</span>
+            <span class="log-message"><strong>${sourceName}</strong> ${sender}${details}</span>
+          </div>`;
+      }).join('');
+    }
+
+    // Render Review Cards
+    function renderReviews(reviews) {
+      reviewCountBadge.textContent = reviews.length;
+      if (reviews.length === 0) {
+        pendingReviewsBody.innerHTML = `
+          <div class="empty-state">
+            <i class="fa-solid fa-shield-halved"></i>
+            <p>Queue clean. No pending reviews.</p>
+          </div>`;
+        return;
+      }
+
+      pendingReviewsBody.innerHTML = reviews.map(r => {
+        const confPct = Math.round(Number(r.confidence || 0) * 100);
+        return `
+          <div class="review-card">
+            <div class="review-card-header">
+              <span class="review-title" title="${r.payload_json?.file_name || 'Document'}">${r.payload_json?.file_name || 'Document'}</span>
+              <span class="review-confidence">${confPct}% Conf</span>
+            </div>
+            <div class="review-meta">
+              <span>Category: <strong>${r.proposed_category || 'unknown'}</strong></span>
+            </div>
+            <div class="review-actions">
+              <button class="btn btn-approve" onclick="approveReview('${r.id}')">
+                <i class="fa-solid fa-check"></i> Approve
+              </button>
+              <button class="btn btn-reject" onclick="rejectReview('${r.id}')">
+                <i class="fa-solid fa-xmark"></i> Reject
+              </button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // Review Actions
+    async function approveReview(id) {
+      try {
+        const res = await fetch(`${currentEndpoint}/v1/review/${id}/approve`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reviewer: 'monitor-desktop' })
+        });
+        if (!res.ok) throw new Error('Approve failed');
+        showToast('Document approved & posted successfully!');
+        updateDashboard();
+      } catch (err) {
+        showToast(`Approval failed: ${err.message}`);
+      }
+    }
+
+    async function rejectReview(id) {
+      try {
+        const res = await fetch(`${currentEndpoint}/v1/review/${id}/reject`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reviewer: 'monitor-desktop', note: 'Rejected via desktop monitor' })
+        });
+        if (!res.ok) throw new Error('Reject failed');
+        showToast('Document rejected & removed.');
+        updateDashboard();
+      } catch (err) {
+        showToast(`Rejection failed: ${err.message}`);
+      }
+    }
+
+    // Set connection status
+    function setConnectionStatus(status, detail) {
+      statusDot.className = 'status-dot';
+      if (status === 'ok') {
+        statusDot.classList.add('connected');
+        statusText.textContent = 'Connected';
+      } else if (status === 'connecting') {
+        statusDot.classList.add('connecting');
+        statusText.textContent = 'Connecting...';
+      } else {
+        statusText.textContent = 'Disconnected';
+      }
+    }
+
+    // Polling control
+    function resetPolling() {
+      if (pollInterval) clearInterval(pollInterval);
+      updateDashboard();
+      pollInterval = setInterval(updateDashboard, 5000); // 5s refresh
+    }
+
+    // DOM Listeners
+    backendSelector.addEventListener('change', (e) => {
+      const val = e.target.value;
+      if (val === 'custom') {
+        customUrlInput.value = currentEndpoint;
+        customUrlModal.style.display = 'grid';
+      } else {
+        saveSettings(val);
+      }
+    });
+
+    settingsTrigger.addEventListener('click', () => {
+      customUrlInput.value = currentEndpoint;
+      customUrlModal.style.display = 'grid';
+    });
+
+    modalCancel.addEventListener('click', () => {
+      customUrlModal.style.display = 'none';
+      // Reset dropdown index
+      backendSelector.value = currentEndpoint;
+    });
+
+    modalSave.addEventListener('click', () => {
+      let val = customUrlInput.value.trim().replace(/\/+$/, "");
+      if (!val) return;
+      if (!val.startsWith('http://') && !val.startsWith('https://')) {
+        val = 'http://' + val;
+      }
+      
+      customUrlModal.style.display = 'none';
+      
+      // Update dropdown selection dynamically
+      let matched = false;
+      for (let i = 0; i < backendSelector.options.length; i++) {
+        if (backendSelector.options[i].value === val) {
+          backendSelector.selectedIndex = i;
+          matched = true;
+          break;
+        }
+      }
+      
+      if (!matched) {
+        const customOpt = document.createElement('option');
+        customOpt.value = val;
+        customOpt.textContent = `Custom (${new URL(val).hostname})`;
+        backendSelector.insertBefore(customOpt, backendSelector.lastElementChild);
+        backendSelector.value = val;
+      }
+      
+      saveSettings(val);
+    });
+
+    // Listeners for live filtering
+    searchFilter.addEventListener('input', filterAndRenderLogs);
+    statusFilter.addEventListener('change', filterAndRenderLogs);
+    categoryFilter.addEventListener('change', filterAndRenderLogs);
+
+    // Bootstrap
+    window.addEventListener('DOMContentLoaded', () => {
+      loadSettings();
+      resetPolling();
+    });
+  </script>
+</body>
+</html>
