@@ -970,10 +970,30 @@
 
       pendingReviewsBody.innerHTML = reviews.map(r => {
         const confPct = Math.round(Number(r.confidence || 0) * 100);
+        const p = r.payload_json || {};
+        
+        // Extract title/filename from nested properties
+        const title = p.event?.filename 
+                   || p.event?.file_name 
+                   || p.file_name 
+                   || p.title 
+                   || p.event?.caption 
+                   || 'Document';
+                   
+        // Extract url
+        const fileUrl = p.event?.mediaUrl 
+                     || p.event?.media_url 
+                     || p.file_url 
+                     || p.url;
+
+        const titleHtml = fileUrl 
+          ? `<a href="${fileUrl}" target="_blank" class="review-link" style="color: var(--color-received); text-decoration: underline; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; display: inline-block;" title="Click to view document">${title}</a>`
+          : `<span class="review-title" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; display: inline-block;" title="${title}">${title}</span>`;
+
         return `
           <div class="review-card">
             <div class="review-card-header">
-              <span class="review-title" title="${r.payload_json?.file_name || 'Document'}">${r.payload_json?.file_name || 'Document'}</span>
+              ${titleHtml}
               <span class="review-confidence">${confPct}% Conf</span>
             </div>
             <div class="review-meta">
